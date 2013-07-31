@@ -1,0 +1,3 @@
+gcc -o read_ethbuf eth_libmm.c read_ethbuf.c
+gcc -o reset eth_libmm.c reset.c 
+
