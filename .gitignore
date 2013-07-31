@@ -1,4 +1,6 @@
 # General
+reset
+read_ethbuf
 *~
 *#
 *log
