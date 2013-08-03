@@ -69,8 +69,8 @@ int eth_open(char *dev_name)
   if (buf_start==MAP_FAILED) {
     printf("emu::daq::reader::Spy::open: FATAL in memorymap - ");
     printf("emu::daq::reader::Spy::open will abort!!!");
-      abort();
-    }
+    abort();
+  }
   printf("emu::daq::reader::Spy::open: Memory map succeeded ");
 
   buf_end=(BIGPHYS_PAGES_2-RING_PAGES_2)*PAGE_SIZE-MAXPACKET_2;
@@ -94,8 +94,7 @@ int eth_open(char *dev_name)
   printf("\n");
 }
 
-int eth_register_mac()
-{
+int eth_register_mac(){
   int  i,mac_idx;
   mac_idx = 0; 
   if((ether_header[mac_idx]=(struct ethhdr *)malloc(sizeof(struct ethhdr)))==0){
@@ -113,8 +112,7 @@ int eth_register_mac()
 }
 
 
-int eth_reset(void)
-{ 
+int eth_reset(void){ 
   if(ioctl(fd_schar,SCHAR_RESET)){
     printf("Error in SCHAR_RESET \n");
   }
@@ -128,28 +126,27 @@ int eth_reset(void)
 }
 
 /* int eth_read()
-{
-int size;
-int lp;
- size=0;
-  do {
-    size=read(fd_schar,rbuf,nrbuf);
-    printf(" size %d \n",size);
-    for(lp=0;size>=0 && size <7 && rbuf[0]==0x03 && lp<100;lp++){
-      usleep(100);
-      size=read(fd_schar,rbuf,nrbuf);
-    }
-  } while(size>6 && (rbuf[0]&1)==1); //ignore multicast packets
-  return size;
-  } */
+   {
+   int size;
+   int lp;
+   size=0;
+   do {
+   size=read(fd_schar,rbuf,nrbuf);
+   printf(" size %d \n",size);
+   for(lp=0;size>=0 && size <7 && rbuf[0]==0x03 && lp<100;lp++){
+   usleep(100);
+   size=read(fd_schar,rbuf,nrbuf);
+   }
+   } while(size>6 && (rbuf[0]&1)==1); //ignore multicast packets
+   return size;
+   } */
 
-int eth_write()
-{
+int eth_write(){
   int pkt_size,pkt_stp;
   int i,n_written;
   int cur_mac; 
   printf(" Creating the packet: nwbuf %d \n",nwbuf);
- //Creating the packet
+  //Creating the packet
   cur_mac=0;
   ether_header[cur_mac]->h_proto = htons(nwbuf);/* Length of data */
   memcpy(ebuf, ether_header[cur_mac], ETH_HLEN);
@@ -162,8 +159,7 @@ int eth_write()
   return n_written;
 }
 
-void eth_close(void)
-{
+void eth_close(void){
   int i;
   int nmacs;
   nmacs=1;
@@ -178,9 +174,9 @@ void eth_close(void)
 
 void eth_enableBlock(void){
   int status;
- if((status=ioctl(fd_schar,SCHAR_BLOCKON))==-1){
-   printf("Spy: error in enableBlock ");
- }
+  if((status=ioctl(fd_schar,SCHAR_BLOCKON))==-1){
+    printf("Spy: error in enableBlock ");
+  }
 }
 
 void eth_disableBlock(void){
@@ -191,14 +187,14 @@ void eth_disableBlock(void){
 }
 
 void eth_resetAndEnable(){
-   eth_reset();
-   eth_enableBlock();
+  eth_reset();
+  eth_enableBlock();
 }
 
 int eth_readmm(){
-//-------------------------------------------------------------------//
-//  MemoryMapped DDU2004 readout
-//-------------------------------------------------------------------//
+  //-------------------------------------------------------------------//
+  //  MemoryMapped DDU2004 readout
+  //-------------------------------------------------------------------//
   int theDataLength;
   int jloop,j;
   int length,len;
@@ -214,7 +210,6 @@ int eth_readmm(){
   pmissing_prev=0;
   packets=0;
   visitCount++;
-  printf(" about to loop \n");
   fflush(stdout);
   while (jloop!=1){
     jloop++; 
@@ -222,127 +217,127 @@ int eth_readmm(){
     // Get the write pointer (relative to buf_start) of the kernel driver.
     buf_pnt_kern=*(unsigned long int *)(buf_start+BIGPHYS_PAGES_2*PAGE_SIZE-TAILPOS);
     //printf(" buf_pnt_kern %ld %ld %d \n",buf_pnt_kern,buf_pnt,iloop);
-    printf("end_event %02x\n", end_event);
+    //printf("end_event %02x\n", end_event);
     if(end_event==0){
       //      for(j=0;j<100;j++)printf(" %08x ",(unsigned long int )buf_start[j]);printf("\n");
-    // If no data for a long time, abort.
-    if(iloop>50000){printf(" eth_readmm timeout- no data"); break;}
+      // If no data for a long time, abort.
+      if(iloop>50000){printf(" eth_readmm timeout- no data"); break;}
 
-    // If the write pointer buf_pnt_kern hasn't yet moved from the read pointer buf_pnt, 
-    // wait a bit and retry in the next loop.
-    if(buf_pnt==buf_pnt_kern){for (j=0;j<5000000;j++); iloop++; continue;}
+      // If the write pointer buf_pnt_kern hasn't yet moved from the read pointer buf_pnt, 
+      // wait a bit and retry in the next loop.
+      if(buf_pnt==buf_pnt_kern){for (j=0;j<5000000;j++); iloop++; continue;}
 
-    // The kernel driver has written new data. No more idle looping. Reset the idle loop counter.
-    iloop=0;
+      // The kernel driver has written new data. No more idle looping. Reset the idle loop counter.
+      iloop=0;
 
-    // From the current entry of the packet info ring,...
-    ring_loop_kern= *(unsigned short int *)(ring_start+ring_pnt*RING_ENTRY_LENGTH);
-    // ...get the missing packet flag,...
-    pmissing=ring_loop_kern&0x8000;
-    // ...the end-of-event flag,...
-    end_event=ring_loop_kern&0x4000;
-    printf(" end_event %02x missing %02x \n",end_event,pmissing);
-    end_event=0x4000;
-    pmissing=0x0000;
-    // ...the reset ("loop-back") counter,...
-    ring_loop_kern=ring_loop_kern&0x3fff;
-    // ...and the length of data in bytes.
-    length=*(unsigned short int *)(ring_start+ring_pnt*RING_ENTRY_LENGTH+4);
-    //    length=*(unsigned short int *)(ring_start+ring_pnt*RING_ENTRY_LENGTH+8);
-    printf(" length %d \n",length);
-    // Get the reset counter from the first entry of the packet info ring...
-    ring_loop_kern2=*(unsigned short int *)ring_start;
-    ring_loop_kern2=0x3fff&ring_loop_kern2;
+      // From the current entry of the packet info ring,...
+      ring_loop_kern= *(unsigned short int *)(ring_start+ring_pnt*RING_ENTRY_LENGTH);
+      // ...get the missing packet flag,...
+      pmissing=ring_loop_kern&0x8000;
+      // ...the end-of-event flag,...
+      end_event=ring_loop_kern&0x4000;
+      printf(" end_event %02x missing %02x \n",end_event,pmissing);
+      end_event=0x4000;
+      pmissing=0x0000;
+      // ...the reset ("loop-back") counter,...
+      ring_loop_kern=ring_loop_kern&0x3fff;
+      // ...and the length of data in bytes.
+      length=*(unsigned short int *)(ring_start+ring_pnt*RING_ENTRY_LENGTH+4);
+      //    length=*(unsigned short int *)(ring_start+ring_pnt*RING_ENTRY_LENGTH+8);
+      printf(" length %d \n",length);
+      // Get the reset counter from the first entry of the packet info ring...
+      ring_loop_kern2=*(unsigned short int *)ring_start;
+      ring_loop_kern2=0x3fff&ring_loop_kern2;
 
-    if( ( (ring_loop_kern2==ring_loop+1)&&(buf_pnt<=buf_pnt_kern) ) ||
-	(ring_loop_kern2>ring_loop+1)                                  ){
-      printf(":eth_readmm buffer overwrite.");
-      // Reset the read pointers.
-      buf_pnt  = 0;
-      ring_pnt = 0;
-      // Synchronize our loop-back counter to the driver's.
-      ring_loop = ring_loop_kern2;
-      // Read no data this time.
-      len = 0;
+      if( ( (ring_loop_kern2==ring_loop+1)&&(buf_pnt<=buf_pnt_kern) ) ||
+	  (ring_loop_kern2>ring_loop+1)                                  ){
+	printf(":eth_readmm buffer overwrite.");
+	// Reset the read pointers.
+	buf_pnt  = 0;
+	ring_pnt = 0;
+	// Synchronize our loop-back counter to the driver's.
+	ring_loop = ring_loop_kern2;
+	// Read no data this time.
+	len = 0;
 
-      break;
-    }
+	break;
+      }
 
-    // The data may not have been overwritten, but the packet info ring may. 
-    // Check whether the driver's loop-back count is different from ours.
-    if(ring_loop_kern!=ring_loop){
-      printf("eth_readmm: loop overwrite.");
+      // The data may not have been overwritten, but the packet info ring may. 
+      // Check whether the driver's loop-back count is different from ours.
+      if(ring_loop_kern!=ring_loop){
+	printf("eth_readmm: loop overwrite.");
 
-      // Reset the read pointers.
-      buf_pnt  = 0;
-      ring_pnt = 0;
-      // Synchronize our loop-back counter to the driver's.
-      ring_loop = ring_loop_kern2;
-      // Read no data this time.
-      len = 0;
-      // Let the next event start with a clean record.
-
-
-      break;
-    }
-
-    // Remember the position of the start of data...
-    if(packets==0){
-      buf_data=buf_start+buf_pnt;
-    }
-    // ...and add its length to the total.
-    len=len+length;
-    // Increment data ring pointer...
-    buf_pnt=buf_pnt+length;
-    // ...and packet info ring pointer.
-    ring_pnt=ring_pnt+1;
-
-    // If this packet ends the event but another event may not fit in the remaining space (beyond buf_eend),
-    // OR another packet may not fit in the remaining space (beyond buf_end),
-    // OR the end of the packet info ring has been reached, 
-    // then reset the read pointers (loop back) and increment the loop-back counter.
-    // This condition must be exactly the same as that in the driver (eth_hook_<N>.c) for the
-    // write and read pointers to loop back from the same point.
-
-    if (((end_event==0x4000)&&(buf_pnt>buf_eend))||(buf_pnt > buf_end)||(ring_pnt>=ring_size)){
-      ring_pnt=0;
-      ring_loop=ring_loop+1;
-      buf_pnt=0;
-}
-
-    // Increment packet count.
-    packets=packets+1;
-
-    // Mark this event as oversized to keep a tally
-    if(len>MAXEVENT_2){
-      printf(" eth_readmm : event too long \n");
-    }
-
-    // If this event already has packets missing, don't read it
+	// Reset the read pointers.
+	buf_pnt  = 0;
+	ring_pnt = 0;
+	// Synchronize our loop-back counter to the driver's.
+	ring_loop = ring_loop_kern2;
+	// Read no data this time.
+	len = 0;
+	// Let the next event start with a clean record.
 
 
-    // If packets are missing, don't read out anything, just keep a tally.
-    if(pmissing!=0){
-      pmissingCount++; 
-      // Remember that we are inside a defective event until we reach the end of it.
-      // (Or the end of the next event, for that matter, it the end of this one happens to be missing.)
+	break;
+      }
 
-      len = 0;
-    }
+      // Remember the position of the start of data...
+      if(packets==0){
+	buf_data=buf_start+buf_pnt;
+      }
+      // ...and add its length to the total.
+      len=len+length;
+      // Increment data ring pointer...
+      buf_pnt=buf_pnt+length;
+      // ...and packet info ring pointer.
+      ring_pnt=ring_pnt+1;
+
+      // If this packet ends the event but another event may not fit in the remaining space (beyond buf_eend),
+      // OR another packet may not fit in the remaining space (beyond buf_end),
+      // OR the end of the packet info ring has been reached, 
+      // then reset the read pointers (loop back) and increment the loop-back counter.
+      // This condition must be exactly the same as that in the driver (eth_hook_<N>.c) for the
+      // write and read pointers to loop back from the same point.
+
+      if (((end_event==0x4000)&&(buf_pnt>buf_eend))||(buf_pnt > buf_end)||(ring_pnt>=ring_size)){
+	ring_pnt=0;
+	ring_loop=ring_loop+1;
+	buf_pnt=0;
+      }
+
+      // Increment packet count.
+      packets=packets+1;
+
+      // Mark this event as oversized to keep a tally
+      if(len>MAXEVENT_2){
+	printf(" eth_readmm : event too long \n");
+      }
+
+      // If this event already has packets missing, don't read it
 
 
-  } // while (true)
+      // If packets are missing, don't read out anything, just keep a tally.
+      if(pmissing!=0){
+	pmissingCount++; 
+	// Remember that we are inside a defective event until we reach the end of it.
+	// (Or the end of the next event, for that matter, it the end of this one happens to be missing.)
+
+	len = 0;
+      }
+
+
+    } // while (true)
 
     end_event=0;
-  //MAINEND:
-  buf=buf_data;
+    //MAINEND:
+    buf=buf_data;
 
-  //theDataLength = dataLengthWithoutPadding( buf, len );
-  for(j=0;j<len;j++)rbuf[j]=buf[j];
-  //   std::cout << "Data length " << len << std::endl << "without padding " << theDataLength << std::endl << std::flush;
+    //theDataLength = dataLengthWithoutPadding( buf, len );
+    for(j=0;j<len;j++)rbuf[j]=buf[j];
+    //   std::cout << "Data length " << len << std::endl << "without padding " << theDataLength << std::endl << std::flush;
   }
   
-  printf("pmissingCount: %02x\n", pmissingCount);
+  printf(" pmissingCount: %02x\n", pmissingCount);
 
   return len;
 
